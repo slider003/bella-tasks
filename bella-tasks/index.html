@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bella To-Do List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600&display=swap');
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #f9f7f5;
+            color: #333;
+        }
+        
+        .title-font {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .task-item {
+            transition: all 0.3s ease;
+        }
+        
+        .task-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .completed {
+            text-decoration: line-through;
+            color: #a8a8a8;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .custom-checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 1px solid #d1c7b7;
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .custom-checkbox:checked {
+            background-color: #d1c7b7;
+        }
+        
+        .custom-checkbox:checked::after {
+            content: '\2713';
+            position: absolute;
+            color: white;
+            font-size: 12px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="container mx-auto px-4 py-12 max-w-2xl">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="title-font text-4xl md:text-5xl font-medium text-[#6a5d4d] mb-4">Bella Tasks</h1>
+            <p class="text-[#8a7f6e] max-w-md mx-auto">Organize your day with elegance and simplicity</p>
+        </header>
+        
+        <!-- Add Task Form -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-8 border border-[#f0ece4]">
+            <form id="task-form" class="flex items-center">
+                <input 
+                    type="text" 
+                    id="task-input" 
+                    placeholder="Add a new task..." 
+                    class="flex-grow px-4 py-3 border border-[#e0d9cc] rounded focus:outline-none focus:ring-1 focus:ring-[#d1c7b7] focus:border-[#d1c7b7] text-[#6a5d4d] placeholder-[#b8b0a1]"
+                    required
+                >
+                <button 
+                    type="submit" 
+                    class="ml-4 px-6 py-3 bg-[#d1c7b7] hover:bg-[#b8aa96] text-white rounded transition-colors duration-200"
+                >
+                    Add
+                </button>
+            </form>
+        </div>
+        
+        <!-- Task List -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden border border-[#f0ece4]">
+            <!-- Filter Controls -->
+            <div class="flex border-b border-[#f0ece4]">
+                <button 
+                    id="filter-all" 
+                    class="filter-btn flex-1 py-3 text-center text-[#8a7f6e] hover:text-[#6a5d4d] border-b-2 border-transparent hover:border-[#d1c7b7] transition-colors duration-200 active"
+                >
+                    All
+                </button>
+                <button 
+                    id="filter-active" 
+                    class="filter-btn flex-1 py-3 text-center text-[#8a7f6e] hover:text-[#6a5d4d] border-b-2 border-transparent hover:border-[#d1c7b7] transition-colors duration-200"
+                >
+                    Active
+                </button>
+                <button 
+                    id="filter-completed" 
+                    class="filter-btn flex-1 py-3 text-center text-[#8a7f6e] hover:text-[#6a5d4d] border-b-2 border-transparent hover:border-[#d1c7b7] transition-colors duration-200"
+                >
+                    Completed
+                </button>
+            </div>
+            
+            <!-- Tasks Container -->
+            <div id="tasks-container" class="divide-y divide-[#f0ece4]">
+                <!-- Tasks will be added here dynamically -->
+                <div class="text-center py-8 text-[#b8b0a1]" id="empty-state">
+                    <i class="fas fa-clipboard-list text-4xl mb-3"></i>
+                    <p>No tasks yet. Add one above!</p>
+                </div>
+            </div>
+            
+            <!-- Task Stats -->
+            <div class="flex justify-between items-center px-6 py-4 bg-[#faf8f5] text-sm text-[#8a7f6e]">
+                <span id="items-left">0 items left</span>
+                <button id="clear-completed" class="hover:text-[#6a5d4d] transition-colors duration-200">Clear completed</button>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <footer class="mt-12 text-center text-sm text-[#8a7f6e]">
+            <p>Inspired by the elegance of <a href="https://thebellamarketplace.com/" target="_blank" rel="noopener noreferrer">Bella Marketplace</a></p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const taskForm = document.getElementById('task-form');
+            const taskInput = document.getElementById('task-input');
+            const tasksContainer = document.getElementById('tasks-container');
+            const emptyState = document.getElementById('empty-state');
+            const filterAll = document.getElementById('filter-all');
+            const filterActive = document.getElementById('filter-active');
+            const filterCompleted = document.getElementById('filter-completed');
+            const clearCompleted = document.getElementById('clear-completed');
+            const itemsLeft = document.getElementById('items-left');
+            
+            let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            let currentFilter = 'all';
+            
+            // Initialize the app
+            function init() {
+                renderTasks();
+                updateItemsLeft();
+                
+                // Event Listeners
+                taskForm.addEventListener('submit', addTask);
+                clearCompleted.addEventListener('click', clearCompletedTasks);
+                
+                filterAll.addEventListener('click', () => setFilter('all'));
+                filterActive.addEventListener('click', () => setFilter('active'));
+                filterCompleted.addEventListener('click', () => setFilter('completed'));
+            }
+            
+            // Add a new task
+            function addTask(e) {
+                e.preventDefault();
+                
+                const taskText = taskInput.value.trim();
+                if (taskText === '') return;
+                
+                const newTask = {
+                    id: Date.now(),
+                    text: taskText,
+                    completed: false,
+                    timestamp: new Date().toISOString()
+                };
+                
+                tasks.unshift(newTask);
+                saveTasks();
+                renderTasks();
+                taskInput.value = '';
+                
+                // Hide empty state if it's the first task
+                if (tasks.length === 1) {
+                    emptyState.style.display = 'none';
+                }
+            }
+            
+            // Render tasks based on current filter
+            function renderTasks() {
+                tasksContainer.innerHTML = '';
+                
+                let filteredTasks = [];
+                
+                switch(currentFilter) {
+                    case 'active':
+                        filteredTasks = tasks.filter(task => !task.completed);
+                        break;
+                    case 'completed':
+                        filteredTasks = tasks.filter(task => task.completed);
+                        break;
+                    default:
+                        filteredTasks = [...tasks];
+                }
+                
+                if (filteredTasks.length === 0) {
+                    let message = '';
+                    if (currentFilter === 'all') message = 'No tasks yet. Add one above!';
+                    else if (currentFilter === 'active') message = 'No active tasks';
+                    else message = 'No completed tasks';
+                    
+                    emptyState.querySelector('p').textContent = message;
+                    emptyState.style.display = tasks.length === 0 ? 'block' : 'none';
+                    
+                    if (tasks.length > 0) {
+                        const noResults = document.createElement('div');
+                        noResults.className = 'text-center py-8 text-[#b8b0a1]';
+                        noResults.innerHTML = `
+                            <i class="fas fa-search text-4xl mb-3"></i>
+                            <p>${message}</p>
+                        `;
+                        tasksContainer.appendChild(noResults);
+                    }
+                    
+                    return;
+                }
+                
+                emptyState.style.display = 'none';
+                
+                filteredTasks.forEach(task => {
+                    const taskElement = document.createElement('div');
+                    taskElement.className = 'task-item fade-in flex items-center px-6 py-4 hover:bg-[#faf8f5]';
+                    taskElement.dataset.id = task.id;
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'custom-checkbox mr-4';
+                    checkbox.checked = task.completed;
+                    checkbox.addEventListener('change', () => toggleTaskComplete(task.id));
+                    
+                    const taskText = document.createElement('span');
+                    taskText.className = `flex-grow text-[#6a5d4d] ${task.completed ? 'completed' : ''}`;
+                    taskText.textContent = task.text;
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'ml-4 text-[#b8b0a1] hover:text-[#8a7f6e] transition-colors duration-200';
+                    deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    deleteBtn.addEventListener('click', () => deleteTask(task.id));
+                    
+                    taskElement.appendChild(checkbox);
+                    taskElement.appendChild(taskText);
+                    taskElement.appendChild(deleteBtn);
+                    
+                    tasksContainer.appendChild(taskElement);
+                });
+            }
+            
+            // Toggle task completion status
+            function toggleTaskComplete(taskId) {
+                tasks = tasks.map(task => {
+                    if (task.id === taskId) {
+                        return { ...task, completed: !task.completed };
+                    }
+                    return task;
+                });
+                
+                saveTasks();
+                renderTasks();
+                updateItemsLeft();
+            }
+            
+            // Delete a task
+            function deleteTask(taskId) {
+                tasks = tasks.filter(task => task.id !== taskId);
+                saveTasks();
+                renderTasks();
+                updateItemsLeft();
+                
+                if (tasks.length === 0) {
+                    emptyState.style.display = 'block';
+                }
+            }
+            
+            // Clear all completed tasks
+            function clearCompletedTasks() {
+                tasks = tasks.filter(task => !task.completed);
+                saveTasks();
+                renderTasks();
+                updateItemsLeft();
+                
+                if (tasks.length === 0) {
+                    emptyState.style.display = 'block';
+                }
+            }
+            
+            // Set current filter
+            function setFilter(filter) {
+                currentFilter = filter;
+                
+                // Update active state of filter buttons
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('active', 'text-[#6a5d4d]', 'border-[#d1c7b7]');
+                });
+                
+                const activeBtn = document.getElementById(`filter-${filter}`);
+                activeBtn.classList.add('active', 'text-[#6a5d4d]', 'border-[#d1c7b7]');
+                
+                renderTasks();
+            }
+            
+            // Update items left counter
+            function updateItemsLeft() {
+                const activeTasks = tasks.filter(task => !task.completed).length;
+                itemsLeft.textContent = `${activeTasks} ${activeTasks === 1 ? 'item' : 'items'} left`;
+            }
+            
+            // Save tasks to localStorage
+            function saveTasks() {
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            }
+            
+            // Initialize the app
+            init();
+        });
+    </script>
+<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=mncole003/bella-tasks" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
+</html>
