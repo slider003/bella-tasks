@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bella To-Do List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #EAE6E9;
+            color: #5E5A5C;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+        }
+        .notepad-container {
+            background-color: #F7F6F8;
+            border-radius: 8px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+            width: 100%;
+            max-width: 550px; /* Slightly wider for time pickers */
+            border: 1px solid #DCD9DC;
+            overflow: hidden;
+        }
+        .notepad-header {
+            background-color: #D3C9CF;
+            padding: 20px 30px;
+            text-align: center;
+        }
+        .header-title {
+            font-family: 'Dancing Script', cursive;
+            color: #FFFFFF;
+            font-size: 3rem;
+            font-weight: 600;
+        }
+        .notepad-body {
+            padding: 25px 30px;
+        }
+        .date-section {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        .date-label {
+            font-family: 'Dancing Script', cursive;
+            color: #787174;
+            font-size: 1.6rem;
+            margin-right: 10px;
+            white-space: nowrap;
+        }
+        #datePicker { /* Changed ID from dateInput */
+            border: none;
+            border-bottom: 1.5px solid #C2BCC0;
+            background-color: transparent;
+            flex-grow: 1;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            color: #5E5A5C;
+            padding: 5px 2px; /* Adjusted padding */
+            min-width: 150px; /* Ensure it has some width */
+        }
+        #datePicker:focus {
+            outline: none;
+            border-bottom-color: #A89FA3;
+        }
+
+        .task-list-container {
+            /* Container for tasks */
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            gap: 8px; /* Gap between checkbox, text, time, delete */
+        }
+        .task-item input[type="checkbox"] {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 1.5px solid #B0A8AD;
+            border-radius: 3px;
+            cursor: pointer;
+            position: relative;
+            flex-shrink: 0;
+            background-color: #F7F6F8;
+        }
+        .task-item input[type="checkbox"]:checked {
+            background-color: #B0A8AD;
+            border-color: #9A9296;
+        }
+        .task-item input[type="checkbox"]:checked::after {
+            content: '✔';
+            font-size: 14px;
+            color: #FFFFFF;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .task-text-input {
+            flex-grow: 1;
+            border: none;
+            border-bottom: 1px solid #D7D2D5;
+            background-color: transparent;
+            padding: 6px 0;
+            font-size: 0.95rem; /* Slightly smaller to fit time */
+            color: #5E5A5C;
+            min-width: 100px; /* Give it some base width */
+        }
+        .task-text-input:focus {
+            outline: none;
+            border-bottom-color: #A89FA3;
+        }
+        .task-text-input.completed {
+            text-decoration: line-through;
+            color: #A09A9D;
+            border-bottom-style: dashed;
+        }
+        .task-time-input {
+            border: 1px solid #D7D2D5;
+            border-radius: 4px;
+            background-color: transparent;
+            padding: 4px 6px;
+            font-size: 0.85rem;
+            color: #5E5A5C;
+            width: auto; /* Fit content or a min-width */
+            min-width: 80px; /* For HH:MM */
+            flex-shrink: 0;
+        }
+        .task-time-input:focus {
+            outline: none;
+            border-color: #A89FA3;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #B0A8AD;
+            font-size: 1.3rem;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0 5px;
+            /* margin-left: 8px; Removed, using gap now */
+            opacity: 0.6;
+            transition: opacity 0.2s, color 0.2s;
+            flex-shrink: 0;
+        }
+        .delete-btn:hover {
+            color: #8E868A;
+            opacity: 1;
+        }
+        .action-buttons-container {
+            text-align: center;
+            margin-top: 20px;
+            padding-bottom: 10px;
+        }
+        .styled-button {
+            background-color: #D3C9CF;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 9px 16px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 0 5px;
+        }
+        .styled-button:hover {
+            background-color: #C2B7BD;
+        }
+        .footer-text {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #B8B2B5;
+            padding: 15px 0 10px 0;
+            background-color: #F7F6F8;
+        }
+        .footer-text a {
+            color: #B8B2B5; /* Inherit color or set specific link color */
+            text-decoration: none; /* Optional: remove underline */
+        }
+        .footer-text a:hover {
+            color: #8E868A; /* Darker on hover */
+            text-decoration: underline; /* Optional: add underline on hover */
+        }
+        .user-id-display {
+            font-size: 0.7rem;
+            color: #B8B2B5;
+            text-align: center;
+            margin-top: 10px;
+            word-break: break-all;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5); display: flex;
+            justify-content: center; align-items: center; z-index: 1000;
+            opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-content {
+            background-color: white; padding: 30px; border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3); text-align: center;
+            max-width: 400px; width: 90%;
+        }
+        .modal-content h3 {
+            font-family: 'Inter', sans-serif; font-weight: 600; color: #5E5A5C;
+            font-size: 1.5rem; margin-bottom: 15px;
+        }
+        .modal-content p { font-size: 1rem; color: #555; margin-bottom: 20px; }
+        .modal-buttons button {
+            background-color: #D3C9CF; color: white; border: none;
+            border-radius: 8px; padding: 10px 20px; font-size: 0.9rem;
+            cursor: pointer; margin: 0 10px; transition: background-color 0.3s;
+        }
+        .modal-buttons button:hover { background-color: #C2B7BD; }
+        .modal-buttons .cancel-btn { background-color: #BDBDBD; }
+        .modal-buttons .cancel-btn:hover { background-color: #ADADAD; }
+
+    </style>
+</head>
+<body>
+    <div class="notepad-container">
+        <div class="notepad-header">
+            <h1 class="header-title">to do list</h1>
+        </div>
+        <div class="notepad-body">
+            <div class="date-section">
+                <span class="date-label">date</span>
+                <input type="date" id="datePicker">
+            </div>
+
+            <div id="tasksContainer" class="task-list-container">
+                {/* Tasks will be generated by JS */}
+            </div>
+            
+            <div class="action-buttons-container">
+                <button id="addTaskBtn" class="styled-button">Add Task</button>
+                <button id="clearAllBtn" class="styled-button">Clear All</button>
+            </div>
+            <div id="userIdDisplay" class="user-id-display"></div>
+        </div>
+        <div class="footer-text">
+            <a href="https://thebellamarketplace.com" target="_blank" rel="noopener noreferrer">thebellamarketplace.com</a>
+        </div>
+    </div>
+
+    <div id="confirmationModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modalTitle">Confirm Action</h3>
+            <p id="modalMessage">Are you sure?</p>
+            <div class="modal-buttons">
+                <button id="confirmModalBtn">Confirm</button>
+                <button id="cancelModalBtn" class="cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'bella-todo-img-match-pickers'; // New app ID for this version
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        // setLogLevel('debug');
+
+        let userId = null;
+        let todoDocRef = null;
+        let unsubscribeSnapshot = null;
+
+        const datePicker = document.getElementById('datePicker'); // ID changed
+        const tasksContainer = document.getElementById('tasksContainer');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const userIdDisplay = document.getElementById('userIdDisplay');
+        
+        const confirmationModal = document.getElementById('confirmationModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const confirmModalBtn = document.getElementById('confirmModalBtn');
+        const cancelModalBtn = document.getElementById('cancelModalBtn');
+        let confirmActionCallback = null;
+
+        function showModal(title, message, onConfirm) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            confirmActionCallback = onConfirm;
+            confirmationModal.classList.add('active');
+        }
+        function hideModal() {
+            confirmationModal.classList.remove('active');
+            confirmActionCallback = null;
+        }
+        confirmModalBtn.addEventListener('click', () => {
+            if (confirmActionCallback) confirmActionCallback();
+            hideModal();
+        });
+        cancelModalBtn.addEventListener('click', hideModal);
+
+        async function setupAuth() {
+            try {
+                await setPersistence(auth, browserLocalPersistence);
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userIdDisplay.textContent = `UID: ${userId}`;
+                        initializeToDoList();
+                    } else {
+                        userIdDisplay.textContent = "Authenticating...";
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            try { await signInWithCustomToken(auth, __initial_auth_token); }
+                            catch (error) { await signInAnonymously(auth); }
+                        } else { await signInAnonymously(auth); }
+                    }
+                });
+            } catch (error) {
+                 console.error("Auth setup error:", error);
+                 userIdDisplay.textContent = "Authentication Error";
+                 try { // Fallback sign-in
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
+                    else await signInAnonymously(auth);
+                 } catch (authError) { console.error("Fallback sign-in error:", authError); }
+            }
+        }
+
+        async function initializeToDoList() {
+            if (!userId) {
+                userIdDisplay.textContent = "Error: Auth failed."; return;
+            }
+            // Path: artifacts/{appId}/users/{userId}/todoDataImageMatchPickers/mainList
+            const todoCollectionPath = `artifacts/${appId}/users/${userId}/todoDataImageMatchPickers`;
+            todoDocRef = doc(db, todoCollectionPath, "mainList");
+
+            if (unsubscribeSnapshot) unsubscribeSnapshot();
+            unsubscribeSnapshot = onSnapshot(todoDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    renderToDoList(docSnap.data());
+                } else {
+                    const defaultData = getEmptyToDoData();
+                    setDoc(todoDocRef, defaultData).then(() => renderToDoList(defaultData));
+                }
+            }, (error) => {
+                console.error("Error in onSnapshot:", error);
+                userIdDisplay.textContent = "Error loading data.";
+            });
+        }
+
+        function getISODateString(date = new Date()) {
+            return date.getFullYear() + '-' + 
+                   ('0' + (date.getMonth() + 1)).slice(-2) + '-' + 
+                   ('0' + date.getDate()).slice(-2);
+        }
+
+        function getEmptyToDoData() {
+            const initialTasks = Array.from({ length: 5 }, (_, i) => ({ // Start with 5 lines
+                id: `task_${Date.now()}_${i}`,
+                text: '',
+                time: '', // Default empty time
+                completed: false
+            }));
+            return {
+                selectedDate: getISODateString(), // Store date as "YYYY-MM-DD"
+                tasks: initialTasks,
+                lastUpdated: serverTimestamp()
+            };
+        }
+
+        async function saveData(data) {
+            if (!todoDocRef) return;
+            try {
+                await setDoc(todoDocRef, { ...data, lastUpdated: serverTimestamp() }, { merge: true });
+            } catch (error) { console.error("Error saving data: ", error); }
+        }
+
+        function renderToDoList(data) {
+            datePicker.value = data.selectedDate || getISODateString();
+
+            tasksContainer.innerHTML = '';
+            const tasksToRender = (data.tasks && data.tasks.length > 0) ? data.tasks : getEmptyToDoData().tasks;
+            
+            tasksToRender.forEach(task => {
+                const taskEl = createTaskElement(task);
+                tasksContainer.appendChild(taskEl);
+            });
+        }
+
+        function createTaskElement(taskData) {
+            const item = document.createElement('div');
+            item.className = 'task-item';
+            item.dataset.id = taskData.id;
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = taskData.completed;
+            checkbox.addEventListener('change', () => handleTaskCompletion(taskData.id, checkbox.checked));
+
+            const textInput = document.createElement('input');
+            textInput.type = 'text';
+            textInput.value = taskData.text;
+            textInput.className = 'task-text-input';
+            if (taskData.completed) textInput.classList.add('completed');
+            textInput.placeholder = '...';
+            textInput.addEventListener('blur', () => handleTaskTextChange(taskData.id, textInput.value));
+            textInput.addEventListener('keypress', (e) => {
+                 if (e.key === 'Enter') { e.preventDefault(); textInput.blur(); }
+            });
+
+            const timeInput = document.createElement('input');
+            timeInput.type = 'time';
+            timeInput.value = taskData.time || ''; // Handle empty time string
+            timeInput.className = 'task-time-input';
+            timeInput.addEventListener('change', () => handleTaskTimeChange(taskData.id, timeInput.value)); // Use 'change' for time pickers
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = '&times;';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.title = "Delete task";
+            deleteBtn.addEventListener('click', () => handleDeleteTask(taskData.id));
+
+            item.appendChild(checkbox);
+            item.appendChild(textInput);
+            item.appendChild(timeInput); // Add time picker
+            item.appendChild(deleteBtn);
+            return item;
+        }
+
+        async function handleTaskCompletion(taskId, isCompleted) {
+            const currentData = await getCurrentDataState();
+            const task = currentData.tasks.find(t => t.id === taskId);
+            if (task) {
+                task.completed = isCompleted;
+                const taskElement = tasksContainer.querySelector(`.task-item[data-id="${taskId}"] .task-text-input`);
+                if (taskElement) taskElement.classList.toggle('completed', isCompleted);
+                saveData(currentData);
+            }
+        }
+
+        async function handleTaskTextChange(taskId, newText) {
+            const currentData = await getCurrentDataState();
+            const task = currentData.tasks.find(t => t.id === taskId);
+            if (task) {
+                task.text = newText;
+                saveData(currentData);
+            }
+        }
+        
+        async function handleTaskTimeChange(taskId, newTime) {
+            const currentData = await getCurrentDataState();
+            const task = currentData.tasks.find(t => t.id === taskId);
+            if (task) {
+                task.time = newTime;
+                saveData(currentData);
+            }
+        }
+
+        async function handleDeleteTask(taskId) {
+            showModal("Delete Task", "Are you sure you want to delete this task?", async () => {
+                const currentData = await getCurrentDataState();
+                currentData.tasks = currentData.tasks.filter(t => t.id !== taskId);
+                saveData(currentData);
+            });
+        }
+
+        async function addNewTaskToList() {
+            const currentData = await getCurrentDataState();
+            const newTask = {
+                id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                text: '',
+                time: '', // New tasks start with empty time
+                completed: false
+            };
+            currentData.tasks.push(newTask);
+            saveData(currentData);
+            setTimeout(() => { // Focus new task
+                const newTaskElement = tasksContainer.querySelector(`.task-item[data-id="${newTask.id}"] .task-text-input`);
+                if (newTaskElement) newTaskElement.focus();
+            }, 100);
+        }
+        
+        async function clearAllTasksAction() {
+            showModal("Clear All", "This will clear all tasks for the selected date. Are you sure?", async () => {
+                const currentData = await getCurrentDataState();
+                const emptyTasksData = getEmptyToDoData();
+                currentData.tasks = emptyTasksData.tasks; // Clear only tasks, keep selected date
+                // If you want to reset date too: currentData.selectedDate = emptyTasksData.selectedDate;
+                saveData(currentData);
+            });
+        }
+
+        async function getCurrentDataState() {
+            if (!todoDocRef) return getEmptyToDoData();
+            try {
+                const docSnap = await getDoc(todoDocRef);
+                return docSnap.exists() ? docSnap.data() : getEmptyToDoData();
+            } catch (error) {
+                console.error("Error fetching current data state:", error);
+                return getEmptyToDoData();
+            }
+        }
+
+        datePicker.addEventListener('change', async () => { // Use 'change' for date picker
+            const currentData = await getCurrentDataState();
+            currentData.selectedDate = datePicker.value;
+            saveData(currentData);
+        });
+        
+        addTaskBtn.addEventListener('click', addNewTaskToList);
+        clearAllBtn.addEventListener('click', clearAllTasksAction);
+
+        setupAuth();
+        window.addEventListener('beforeunload', () => {
+            if (unsubscribeSnapshot) unsubscribeSnapshot();
+        });
+    </script>
+</body>
+</html>
