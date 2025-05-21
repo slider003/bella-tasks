@@ -74,7 +74,13 @@
         <!-- Header -->
         <header class="text-center mb-12">
             <h1 class="title-font text-4xl md:text-5xl font-medium text-[#6a5d4d] mb-4">Bella Tasks</h1>
-            <p class="text-[#8a7f6e] max-w-md mx-auto">Organize your day with elegance and simplicity</p>
+            <p class="text-[#8a7f6e] max-w-md mx-auto mb-4">Organize your day with elegance and simplicity</p>
+            <div class="flex justify-center items-center">
+                <button id="style-switcher" class="px-4 py-2 bg-[#d1c7b7] hover:bg-[#b8aa96] text-white rounded-full transition-all duration-300 flex items-center gap-2">
+                    <i class="fas fa-paint-brush"></i>
+                    <span>Switch Design</span>
+                </button>
+            </div>
         </header>
         
         <!-- Add Task Form -->
@@ -154,12 +160,20 @@
             const filterCompleted = document.getElementById('filter-completed');
             const clearCompleted = document.getElementById('clear-completed');
             const itemsLeft = document.getElementById('items-left');
+            const styleSwitcher = document.getElementById('style-switcher');
             
             let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
             let currentFilter = 'all';
+            let currentStyle = localStorage.getItem('taskListStyle') || 'classic';
             
             // Initialize the app
             function init() {
+                // If we're in style2, redirect to task-list-2.html
+                if (currentStyle === 'modern') {
+                    window.location.href = 'task-list-2.html';
+                    return;
+                }
+
                 renderTasks();
                 updateItemsLeft();
                 
@@ -170,6 +184,15 @@
                 filterAll.addEventListener('click', () => setFilter('all'));
                 filterActive.addEventListener('click', () => setFilter('active'));
                 filterCompleted.addEventListener('click', () => setFilter('completed'));
+
+                // Style switcher event listener
+                styleSwitcher.addEventListener('click', () => {
+                    currentStyle = currentStyle === 'classic' ? 'modern' : 'classic';
+                    localStorage.setItem('taskListStyle', currentStyle);
+                    if (currentStyle === 'modern') {
+                        window.location.href = 'task-list-2.html';
+                    }
+                });
             }
             
             // Add a new task

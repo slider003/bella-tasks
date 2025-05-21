@@ -6,6 +6,7 @@
     <title>Bella To-Do List</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -69,9 +70,7 @@
             border-bottom-color: #A89FA3;
         }
 
-        .task-list-container {
-            /* Container for tasks */
-        }
+        /* Task list container styling is handled by other classes */
 
         .task-item {
             display: flex;
@@ -231,6 +230,9 @@
     <div class="notepad-container">
         <div class="notepad-header">
             <h1 class="header-title">to do list</h1>
+            <button id="styleSwitcher" class="styled-button" style="margin-top: 10px; background-color: #C2B7BD;">
+                <i class="fas fa-paint-brush"></i> Switch to Classic
+            </button>
         </div>
         <div class="notepad-body">
             <div class="date-section">
@@ -269,6 +271,18 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Style switcher functionality
+        document.getElementById('styleSwitcher').addEventListener('click', () => {
+            localStorage.setItem('taskListStyle', 'classic');
+            window.location.href = 'index.html';
+        });
+
+        // Check if we should be on this page
+        if (localStorage.getItem('taskListStyle') !== 'modern') {
+            window.location.href = 'index.html';
+        }
+
+        // Rest of the Firebase configuration and functionality
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'bella-todo-img-match-pickers'; // New app ID for this version
 
