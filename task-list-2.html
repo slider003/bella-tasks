@@ -243,7 +243,7 @@
                 <button id="addTaskBtn" class="styled-button">Add Task</button>
                 <button id="clearAllBtn" class="styled-button">Clear All</button>
             </div>
-            <div id="userIdDisplay" class="user-id-display"></div>
+
         </div>
         <div class="footer-text">
             <a href="https://thebellamarketplace.com" target="_blank" rel="noopener noreferrer">thebellamarketplace.com</a>
@@ -261,295 +261,190 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Style switcher functionality
+            document.getElementById('styleSwitcher').addEventListener('click', () => {
+                localStorage.setItem('taskListStyle', 'classic');
+                window.location.href = 'index.html';
+            });
 
-        // Style switcher functionality
-        document.getElementById('styleSwitcher').addEventListener('click', () => {
-            localStorage.setItem('taskListStyle', 'classic');
-            window.location.href = 'index.html';
-        });
+            // Check if we should be on this page
+            if (localStorage.getItem('taskListStyle') !== 'modern') {
+                window.location.href = 'index.html';
+            }
 
-        // Check if we should be on this page
-        if (localStorage.getItem('taskListStyle') !== 'modern') {
-            window.location.href = 'index.html';
-        }
+            const datePicker = document.getElementById('datePicker');
+            const tasksContainer = document.getElementById('tasksContainer');
+            const addTaskBtn = document.getElementById('addTaskBtn');
+            const clearAllBtn = document.getElementById('clearAllBtn');
+            const userIdDisplay = document.getElementById('userIdDisplay');
+            
+            const confirmationModal = document.getElementById('confirmationModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            const confirmModalBtn = document.getElementById('confirmModalBtn');
+            const cancelModalBtn = document.getElementById('cancelModalBtn');
+            let confirmActionCallback = null;
 
-        // Firebase configuration
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'bella-todo-img-match-pickers';
+            let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+            function showModal(title, message, onConfirm) {
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+                confirmActionCallback = onConfirm;
+                confirmationModal.classList.add('active');
+            }
 
-        let userId = null;
-        let todoDocRef = null;
-        let unsubscribeSnapshot = null;
+            function hideModal() {
+                confirmationModal.classList.remove('active');
+                confirmActionCallback = null;
+            }
 
-        const datePicker = document.getElementById('datePicker');
-        const tasksContainer = document.getElementById('tasksContainer');
-        const addTaskBtn = document.getElementById('addTaskBtn');
-        const clearAllBtn = document.getElementById('clearAllBtn');
-        const userIdDisplay = document.getElementById('userIdDisplay');
-        
-        const confirmationModal = document.getElementById('confirmationModal');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalMessage = document.getElementById('modalMessage');
-        const confirmModalBtn = document.getElementById('confirmModalBtn');
-        const cancelModalBtn = document.getElementById('cancelModalBtn');
-        let confirmActionCallback = null;
+            confirmModalBtn.addEventListener('click', () => {
+                if (confirmActionCallback) confirmActionCallback();
+                hideModal();
+            });
 
-        function showModal(title, message, onConfirm) {
-            modalTitle.textContent = title;
-            modalMessage.textContent = message;
-            confirmActionCallback = onConfirm;
-            confirmationModal.classList.add('active');
-        }
+            cancelModalBtn.addEventListener('click', hideModal);
 
-        function hideModal() {
-            confirmationModal.classList.remove('active');
-            confirmActionCallback = null;
-        }
+            function getISODateString(date = new Date()) {
+                return date.getFullYear() + '-' + 
+                       ('0' + (date.getMonth() + 1)).slice(-2) + '-' + 
+                       ('0' + date.getDate()).slice(-2);
+            }
 
-        confirmModalBtn.addEventListener('click', () => {
-            if (confirmActionCallback) confirmActionCallback();
-            hideModal();
-        });
+            function saveTasks() {
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            }
 
-        cancelModalBtn.addEventListener('click', hideModal);
+            function renderToDoList() {
+                tasksContainer.innerHTML = '';
+                if (tasks.length === 0) {
+                    const emptyState = document.createElement('div');
+                    emptyState.className = 'text-center py-8 text-[#b8b0a1]';
+                    emptyState.innerHTML = `
+                        <i class="fas fa-clipboard-list text-4xl mb-3"></i>
+                        <p>No tasks yet. Add one above!</p>
+                    `;
+                    tasksContainer.appendChild(emptyState);
+                    return;
+                }
+                
+                tasks.forEach(task => {
+                    const taskEl = createTaskElement(task);
+                    tasksContainer.appendChild(taskEl);
+                });
+            }
 
-        async function setupAuth() {
-            try {
-                await setPersistence(auth, browserLocalPersistence);
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        userIdDisplay.textContent = `UID: ${userId}`;
-                        initializeToDoList();
-                    } else {
-                        userIdDisplay.textContent = "Authenticating...";
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            try {
-                                await signInWithCustomToken(auth, __initial_auth_token);
-                            } catch (error) {
-                                await signInAnonymously(auth);
-                            }
-                        } else {
-                            await signInAnonymously(auth);
-                        }
+            function createTaskElement(taskData) {
+                const item = document.createElement('div');
+                item.className = 'task-item';
+                item.dataset.id = taskData.id;
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = taskData.completed;
+                checkbox.addEventListener('change', () => handleTaskCompletion(taskData.id, checkbox.checked));
+
+                const textInput = document.createElement('input');
+                textInput.type = 'text';
+                textInput.value = taskData.text;
+                textInput.className = 'task-text-input';
+                if (taskData.completed) textInput.classList.add('completed');
+                textInput.placeholder = '...';
+                textInput.addEventListener('blur', () => handleTaskTextChange(taskData.id, textInput.value));
+                textInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        textInput.blur();
                     }
                 });
-            } catch (error) {
-                console.error("Auth setup error:", error);
-                userIdDisplay.textContent = "Authentication Error";
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (authError) {
-                    console.error("Fallback sign-in error:", authError);
+
+                const timeInput = document.createElement('input');
+                timeInput.type = 'time';
+                timeInput.value = taskData.time || '';
+                timeInput.className = 'task-time-input';
+                timeInput.addEventListener('change', () => handleTaskTimeChange(taskData.id, timeInput.value));
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '&times;';
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.title = "Delete task";
+                deleteBtn.addEventListener('click', () => handleDeleteTask(taskData.id));
+
+                item.appendChild(checkbox);
+                item.appendChild(textInput);
+                item.appendChild(timeInput);
+                item.appendChild(deleteBtn);
+                
+                return item;
+            }
+
+            function handleTaskCompletion(taskId, isCompleted) {
+                const task = tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.completed = isCompleted;
+                    const taskElement = tasksContainer.querySelector(`.task-item[data-id="${taskId}"] .task-text-input`);
+                    if (taskElement) taskElement.classList.toggle('completed', isCompleted);
+                    saveTasks();
                 }
             }
-        }
 
-        async function initializeToDoList() {
-            if (!userId) {
-                userIdDisplay.textContent = "Error: Auth failed.";
-                return;
-            }
-            
-            const todoCollectionPath = `artifacts/${appId}/users/${userId}/todoDataImageMatchPickers`;
-            todoDocRef = doc(db, todoCollectionPath, "mainList");
-
-            if (unsubscribeSnapshot) unsubscribeSnapshot();
-            unsubscribeSnapshot = onSnapshot(todoDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    renderToDoList(docSnap.data());
-                } else {
-                    const defaultData = getEmptyToDoData();
-                    setDoc(todoDocRef, defaultData).then(() => renderToDoList(defaultData));
+            function handleTaskTextChange(taskId, newText) {
+                const task = tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.text = newText;
+                    saveTasks();
                 }
-            }, (error) => {
-                console.error("Error in onSnapshot:", error);
-                userIdDisplay.textContent = "Error loading data.";
-            });
-        }
-
-        function getISODateString(date = new Date()) {
-            return date.getFullYear() + '-' + 
-                   ('0' + (date.getMonth() + 1)).slice(-2) + '-' + 
-                   ('0' + date.getDate()).slice(-2);
-        }
-
-        function getEmptyToDoData() {
-            const initialTasks = Array.from({ length: 5 }, (_, i) => ({
-                id: `task_${Date.now()}_${i}`,
-                text: '',
-                time: '',
-                completed: false
-            }));
-            return {
-                selectedDate: getISODateString(),
-                tasks: initialTasks,
-                lastUpdated: serverTimestamp()
-            };
-        }
-
-        async function saveData(data) {
-            if (!todoDocRef) return;
-            try {
-                await setDoc(todoDocRef, { ...data, lastUpdated: serverTimestamp() }, { merge: true });
-            } catch (error) {
-                console.error("Error saving data: ", error);
             }
-        }
-
-        function renderToDoList(data) {
-            datePicker.value = data.selectedDate || getISODateString();
-
-            tasksContainer.innerHTML = '';
-            const tasksToRender = data.tasks && data.tasks.length > 0 ? data.tasks : getEmptyToDoData().tasks;
             
-            tasksToRender.forEach(task => {
-                const taskEl = createTaskElement(task);
-                tasksContainer.appendChild(taskEl);
-            });
-        }
-
-        function createTaskElement(taskData) {
-            const item = document.createElement('div');
-            item.className = 'task-item';
-            item.dataset.id = taskData.id;
-
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.checked = taskData.completed;
-            checkbox.addEventListener('change', () => handleTaskCompletion(taskData.id, checkbox.checked));
-
-            const textInput = document.createElement('input');
-            textInput.type = 'text';
-            textInput.value = taskData.text;
-            textInput.className = 'task-text-input';
-            if (taskData.completed) textInput.classList.add('completed');
-            textInput.placeholder = '...';
-            textInput.addEventListener('blur', () => handleTaskTextChange(taskData.id, textInput.value));
-            textInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    textInput.blur();
+            function handleTaskTimeChange(taskId, newTime) {
+                const task = tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.time = newTime;
+                    saveTasks();
                 }
-            });
+            }
 
-            const timeInput = document.createElement('input');
-            timeInput.type = 'time';
-            timeInput.value = taskData.time || '';
-            timeInput.className = 'task-time-input';
-            timeInput.addEventListener('change', () => handleTaskTimeChange(taskData.id, timeInput.value));
+            function handleDeleteTask(taskId) {
+                showModal("Delete Task", "Are you sure you want to delete this task?", () => {
+                    tasks = tasks.filter(t => t.id !== taskId);
+                    saveTasks();
+                    renderToDoList();
+                });
+            }
 
-            const deleteBtn = document.createElement('button');
-            deleteBtn.innerHTML = '&times;';
-            deleteBtn.className = 'delete-btn';
-            deleteBtn.title = "Delete task";
-            deleteBtn.addEventListener('click', () => handleDeleteTask(taskData.id));
-
-            item.appendChild(checkbox);
-            item.appendChild(textInput);
-            item.appendChild(timeInput);
-            item.appendChild(deleteBtn);
+            function addNewTaskToList() {
+                const newTask = {
+                    id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    text: '',
+                    time: '',
+                    completed: false,
+                    timestamp: new Date().toISOString()
+                };
+                tasks.unshift(newTask);
+                saveTasks();
+                renderToDoList();
+                setTimeout(() => {
+                    const newTaskElement = tasksContainer.querySelector(`.task-item[data-id="${newTask.id}"] .task-text-input`);
+                    if (newTaskElement) newTaskElement.focus();
+                }, 100);
+            }
             
-            return item;
-        }
-
-        async function handleTaskCompletion(taskId, isCompleted) {
-            const currentData = await getCurrentDataState();
-            const task = currentData.tasks.find(t => t.id === taskId);
-            if (task) {
-                task.completed = isCompleted;
-                const taskElement = tasksContainer.querySelector(`.task-item[data-id="${taskId}"] .task-text-input`);
-                if (taskElement) taskElement.classList.toggle('completed', isCompleted);
-                saveData(currentData);
+            function clearAllTasksAction() {
+                showModal("Clear All", "This will clear all tasks. Are you sure?", () => {
+                    tasks = [];
+                    saveTasks();
+                    renderToDoList();
+                });
             }
-        }
 
-        async function handleTaskTextChange(taskId, newText) {
-            const currentData = await getCurrentDataState();
-            const task = currentData.tasks.find(t => t.id === taskId);
-            if (task) {
-                task.text = newText;
-                saveData(currentData);
-            }
-        }
-        
-        async function handleTaskTimeChange(taskId, newTime) {
-            const currentData = await getCurrentDataState();
-            const task = currentData.tasks.find(t => t.id === taskId);
-            if (task) {
-                task.time = newTime;
-                saveData(currentData);
-            }
-        }
-
-        async function handleDeleteTask(taskId) {
-            showModal("Delete Task", "Are you sure you want to delete this task?", async () => {
-                const currentData = await getCurrentDataState();
-                currentData.tasks = currentData.tasks.filter(t => t.id !== taskId);
-                saveData(currentData);
-            });
-        }
-
-        async function addNewTaskToList() {
-            const currentData = await getCurrentDataState();
-            const newTask = {
-                id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                text: '',
-                time: '',
-                completed: false
-            };
-            currentData.tasks.push(newTask);
-            saveData(currentData);
-            setTimeout(() => {
-                const newTaskElement = tasksContainer.querySelector(`.task-item[data-id="${newTask.id}"] .task-text-input`);
-                if (newTaskElement) newTaskElement.focus();
-            }, 100);
-        }
-        
-        async function clearAllTasksAction() {
-            showModal("Clear All", "This will clear all tasks for the selected date. Are you sure?", async () => {
-                const currentData = await getCurrentDataState();
-                const emptyTasksData = getEmptyToDoData();
-                currentData.tasks = emptyTasksData.tasks;
-                saveData(currentData);
-            });
-        }
-
-        async function getCurrentDataState() {
-            if (!todoDocRef) return getEmptyToDoData();
-            try {
-                const docSnap = await getDoc(todoDocRef);
-                return docSnap.exists() ? docSnap.data() : getEmptyToDoData();
-            } catch (error) {
-                console.error("Error fetching current data state:", error);
-                return getEmptyToDoData();
-            }
-        }
-
-        datePicker.addEventListener('change', async () => {
-            const currentData = await getCurrentDataState();
-            currentData.selectedDate = datePicker.value;
-            saveData(currentData);
-        });
-        
-        addTaskBtn.addEventListener('click', addNewTaskToList);
-        clearAllBtn.addEventListener('click', clearAllTasksAction);
-
-        setupAuth();
-        window.addEventListener('beforeunload', () => {
-            if (unsubscribeSnapshot) unsubscribeSnapshot();
+            datePicker.value = getISODateString();
+            renderToDoList();
+            
+            addTaskBtn.addEventListener('click', addNewTaskToList);
+            clearAllBtn.addEventListener('click', clearAllTasksAction);
         });
     </script>
 </body>
